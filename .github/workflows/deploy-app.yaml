@@ -71,4 +71,4 @@ jobs:
           allInputs: ${{ toJSON(inputs) }}
         run: |
           npm run deploy --prefix /workspace
-          kubectl rollout status deployment/${{inputs.app-name}}
+          kubectl rollout restart deployment ${{ inputs.app-name }} -n $(echo ${{ github.repository }} | cut -d'/' -f2)
