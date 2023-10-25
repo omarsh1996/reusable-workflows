@@ -34,12 +34,13 @@ jobs:
   deployAppToK8s:
     name: Deploy App to K8s
     runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/d1z6e0p1/celebrate-deployment:latest
+
     environment: ${{inputs.env}}
     steps:
       - uses: actions/checkout@v2
         name: Checkout
-      - name: echo
-        run: echo ${{ inputs.branch-name }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -58,17 +59,16 @@ jobs:
         with:
           version: v3.12.3
 
-      - name: Release app
+      - name: Download helm chart
         run: |
           helm repo add celebrate https://omarsh1996.github.io/celebrate-deployment/
           helm repo update
           aws eks update-kubeconfig --name eksdemo1
-          helm upgrade \
-          --install celebrate-deployment-${{ inputs.app-name }} \
-          -f .github/.values.yaml \
-          celebrate/celebrate-deployment \
-          --set appName=${{ inputs.app-name }} \
-          --set prefix=${{ inputs.app-name }} \
-          --set image.tag=${{ inputs.branch-name }} \
-          --namespace $(echo ${{ github.repository }} | cut -d'/' -f2) --create-namespace
-          kubectl rollout restart deployment ${{ inputs.app-name }} -n $(echo ${{ github.repository }} | cut -d'/' -f2)
+      - name: Deploy ...
+        env:
+          allSecrets: ${{ toJSON(secrets) }}
+          allVars: ${{ toJSON(vars) }}
+          allInputs: ${{ toJSON(inputs) }}
+        run: |
+          npm run deploy --prefix /workspace
+          kubectl rollout status deployment/${{inputs.app-name}}
